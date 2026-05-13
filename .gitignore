@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.db
+uploads/
+*.bak
+*.heml
+untitled.txt

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthMate 健康助手</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #333; }
+header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; text-align: center; }
+header h1 { font-size: 2em; }
+header p { opacity: 0.85; margin-top: 5px; }
+nav { display: flex; justify-content: center; gap: 10px; padding: 15px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-wrap: wrap; }
+nav button { padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; background: #e8ecf0; font-size: 0.95em; transition: all 0.3s; }
+nav button.active, nav button:hover { background: #667eea; color: white; }
+.page { display: none; max-width: 900px; margin: 20px auto; padding: 0 15px; }
+.page.active { display: block; }
+.card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+.card h2 { color: #667eea; margin-bottom: 15px; font-size: 1.3em; }
+.weather-box { display: flex; align-items: center; gap: 20px; background: linear-gradient(135deg, #74b9ff, #0984e3); color: white; border-radius: 12px; padding: 20px; }
+.weather-box .temp { font-size: 3em; font-weight: bold; }
+.outfit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+.outfit-item { background: #f8f9ff; border: 2px solid #e8ecf0; border-radius: 10px; padding: 15px; text-align: center; }
+.outfit-item .emoji { font-size: 2.5em; }
+.outfit-item p { margin-top: 8px; color: #555; font-size: 0.9em; }
+.wardrobe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
+.wardrobe-item { background: #f8f9ff; border-radius: 10px; padding: 15px; text-align: center; border: 2px solid #e8ecf0; position: relative; }
+.wardrobe-item .delete-btn { position: absolute; top: 8px; right: 8px; background: #ff7675; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 0.8em; }
+.wardrobe-item .item-emoji { font-size: 2em; }
+.wardrobe-item p { font-size: 0.85em; color: #555; margin-top: 5px; }
+.wardrobe-item .temp-range { font-size: 0.75em; color: #888; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; }
+.form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e8ecf0; border-radius: 8px; font-size: 0.95em; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95em; font-weight: 600; transition: all 0.3s; }
+.btn-primary { background: #667eea; color: white; width: 100%; margin-top: 10px; }
+.btn-primary:hover { background: #5a67d8; }
+.btn-danger { background: #ff7675; color: white; }
+.chat-box { height: 400px; overflow-y: auto; border: 2px solid #e8ecf0; border-radius: 10px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+.msg { margin-bottom: 12px; }
+.msg.user { text-align: right; }
+.msg.user span { background: #667eea; color: white; padding: 8px 14px; border-radius: 18px 18px 4px 18px; display: inline-block; max-width: 75%; }
+.msg.ai span { background: white; border: 2px solid #e8ecf0; padding: 8px 14px; border-radius: 18px 18px 18px 4px; display: inline-block; max-width: 75%; }
+.chat-input { display: flex; gap: 10px; }
+.chat-input input { flex: 1; padding: 12px; border: 2px solid #e8ecf0; border-radius: 8px; font-size: 0.95em; }
+.chat-input button { padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.reminder-box { background: linear-gradient(135deg, #fd79a8, #e84393); color: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+.label-bilingual { display: flex; flex-direction: column; line-height: 1.3; }
+.label-bilingual .en { font-size: 0.75em; color: #999; }
+.section-subtitle { font-size: 0.82em; color: #999; font-weight: 400; margin-left: 6px; }
+#upload-zone:hover { border-color: #5a67d8; background: #f0f2ff; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⭐ HealthMate</h1>
+  <p>你的智能健康与穿搭助手 · Your Smart Health & Style Assistant</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('today')">👗 今日穿搭<br><small>Today's Outfit</small></button>
+  <button onclick="showPage('wardrobe')">👕 我的衣橱<br><small>My Wardrobe</small></button>
+  <button onclick="showPage('add')">➕ 添加衣物<br><small>Add Clothing</small></button>
+  <button onclick="showPage('ai')">🤖 AI 顾问<br><small>AI Advisor</small></button>
+</nav>
+
+<!-- 今日穿搭 Today's Outfit -->
+<div id="page-today" class="page active">
+  <div class="card">
+    <h2>🌤️ 今日天气 <span class="section-subtitle">Today's Weather</span></h2>
+    <div class="weather-box">
+      <div class="temp" id="temp">--°C</div>
+      <div>
+        <div id="weather-desc" style="font-size:1.1em;font-weight:600;">加载中 Loading...</div>
+        <div id="weather-city" style="opacity:0.8;margin-top:4px;font-size:0.9em;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>👗 推荐穿搭 <span class="section-subtitle">Recommended Outfit</span></h2>
+    <div id="outfit-suggestion">
+      <p style="color:#888;text-align:center;padding:20px;">
+        加载推荐中... <br><small>Loading recommendations...</small>
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🏃 运动提醒 <span class="section-subtitle">Exercise Reminder</span></h2>
+    <div id="reminder-box"></div>
+    <div class="form-group" style="margin-top:10px;">
+      <label>
+        <span class="label-bilingual">
+          今日久坐时间（小时）
+          <span class="en">Hours Sitting Today</span>
+        </span>
+      </label>
+      <input type="number" id="sitting-hours" min="0" max="24" value="0">
+    </div>
+    <button class="btn btn-primary" onclick="getReminder()">
+      获取运动建议 · Get Exercise Tips
+    </button>
+  </div>
+</div>
+
+<!-- 我的衣橱 My Wardrobe -->
+<div id="page-wardrobe" class="page">
+  <div class="card">
+    <h2>👕 我的衣橱 <span class="section-subtitle">My Wardrobe</span></h2>
+    <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+      <select id="filter-category" onchange="loadWardrobe()" style="padding:8px;border:2px solid #e8ecf0;border-radius:8px;">
+        <option value="">全部类别 · All Categories</option>
+        <option value="背心">背心 · Tank Top</option>
+        <option value="短袖T恤">短袖T恤 · Short Sleeve T-Shirt</option>
+        <option value="T恤">T恤 · T-Shirt</option>
+        <option value="长袖衬衫">长袖衬衫 · Long Sleeve Shirt</option>
+        <option value="卫衣">卫衣 · Sweatshirt</option>
+        <option value="薄外套">薄外套 · Light Jacket</option>
+        <option value="厚外套">厚外套 · Heavy Jacket</option>
+        <option value="羽绒服">羽绒服 · Down Coat</option>
+        <option value="上衣">上衣 · Top</option>
+        <option value="短裤">短裤 · Shorts</option>
+        <option value="牛仔裤">牛仔裤 · Jeans</option>
+        <option value="厚裤子">厚裤子 · Thick Trousers</option>
+        <option value="裤子">裤子 · Trousers</option>
+      </select>
+    </div>
+    <div class="wardrobe-grid" id="wardrobe-grid">
+      <p style="color:#888;">加载中... Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- 添加衣物 Add Clothing -->
+<div id="page-add" class="page">
+  <div class="card">
+    <h2>➕ 添加衣物 <span class="section-subtitle">Add New Clothing</span></h2>
+
+    <!-- 拍照上传区 -->
+    <div id="upload-zone" onclick="document.getElementById('add-image').click()"
+      style="border:2px dashed #667eea;border-radius:12px;padding:30px;text-align:center;
+             margin-bottom:20px;cursor:pointer;background:#f8f9ff;transition:all 0.3s;">
+      <div id="preview-area">
+        <div style="font-size:3em;">📷</div>
+        <p style="color:#667eea;font-weight:600;margin-top:8px;">点击拍照或上传图片 · Tap to take photo or upload</p>
+        <p style="color:#999;font-size:0.85em;">AI 自动识别衣物信息 · Auto-analyze with AI</p>
+      </div>
+    </div>
+    <input type="file" id="add-image" accept="image/*" capture="environment"
+           style="display:none" onchange="handleImageUpload(this)">
+
+    <!-- AI 识别中状态 -->
+    <div id="ai-analyzing" style="display:none;text-align:center;padding:20px;color:#667eea;">
+      <div style="font-size:2.5em;">🤖</div>
+      <p style="font-weight:600;margin-top:8px;">AI 识别中 · Analyzing...</p>
+      <p style="color:#999;font-size:0.85em;">正在识别类别、风格、材质和适合温度 · Detecting category, style, material & temperature range</p>
+    </div>
+
+    <!-- 表单（AI填充后显示） -->
+    <div id="add-form" style="display:none;">
+      <div id="form-tip" style="background:#e8f5e9;border-radius:8px;padding:10px;
+           margin-bottom:15px;font-size:0.85em;color:#2e7d32;">
+        ✅ AI 识别完成！以下信息均可手动修改 · All fields are editable
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="label-bilingual">衣物名称 <span class="en">Item Name</span></span></label>
+          <input type="text" id="add-name" placeholder="例如：米白宽松卫衣">
+        </div>
+        <div class="form-group">
+          <label><span class="label-bilingual">颜色 <span class="en">Color</span></span></label>
+          <input type="text" id="add-color" placeholder="例如：白色">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="label-bilingual">类别 <span class="en">Category</span></span></label>
+          <select id="add-category">
+            <option value="背心">背心 · Tank Top</option>
+            <option value="短袖T恤">短袖T恤 · Short Sleeve T-Shirt</option>
+            <option value="T恤">T恤 · T-Shirt</option>
+            <option value="长袖衬衫">长袖衬衫 · Long Sleeve Shirt</option>
+            <option value="卫衣">卫衣 · Sweatshirt</option>
+            <option value="薄外套">薄外套 · Light Jacket</option>
+            <option value="厚外套">厚外套 · Heavy Jacket</option>
+            <option value="羽绒服">羽绒服 · Down Coat</option>
+            <option value="上衣">上衣 · Top</option>
+            <option value="短裤">短裤 · Shorts</option>
+            <option value="牛仔裤">牛仔裤 · Jeans</option>
+            <option value="厚裤子">厚裤子 · Thick Trousers</option>
+            <option value="裤子">裤子 · Trousers</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><span class="label-bilingual">风格 <span class="en">Style</span></span></label>
+          <input type="text" id="add-style" placeholder="例如：休闲/运动/正式">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="label-bilingual">材质 <span class="en">Material</span></span></label>
+          <input type="text" id="add-material" placeholder="例如：棉/涤纶/牛仔">
+        </div>
+        <div class="form-group">
+          <label><span class="label-bilingual">可叠穿 <span class="en">Layerable</span></span></label>
+          <select id="add-layerable">
+            <option value="是">是 · Yes</option>
+            <option value="否">否 · No</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="label-bilingual">保暖度(°C) <span class="en">Warmth Value</span></span></label>
+          <input type="number" id="add-warmth" placeholder="基于26度法则">
+        </div>
+        <div class="form-group">
+          <!-- 占位，保持布局对齐 -->
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="label-bilingual">适合最低温度(°C) <span class="en">Min Temp</span></span></label>
+          <input type="number" id="add-temp-min" value="0">
+        </div>
+        <div class="form-group">
+          <label><span class="label-bilingual">适合最高温度(°C) <span class="en">Max Temp</span></span></label>
+          <input type="number" id="add-temp-max" value="35">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="addClothing()">
+        ✅ 保存到衣橱 · Save to Wardrobe
+      </button>
+    </div>
+
+    <!-- 跳过拍照手动填写 -->
+    <div style="text-align:center;margin-top:12px;">
+      <button onclick="showManualForm()"
+        style="background:none;border:none;color:#aaa;font-size:0.85em;cursor:pointer;text-decoration:underline;">
+        跳过拍照，手动填写 · Skip photo, fill manually
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- AI 顾问 AI Advisor -->
+<div id="page-ai" class="page">
+  <div class="card">
+    <h2>🤖 AI 穿搭顾问 <span class="section-subtitle">AI Style Advisor</span></h2>
+    <div class="chat-box" id="chat-box">
+      <div class="msg ai">
+        <span>你好！我是你的 AI 穿搭顾问，告诉我今天的场合或天气，我来帮你搭配 👗<br>
+        <small style="opacity:0.7;">Hi! I'm your AI Style Advisor. Tell me your occasion or the weather, and I'll help you put together an outfit!</small></span>
+      </div>
+    </div>
+    <div class="chat-input">
+      <input type="text" id="chat-input" placeholder="输入你的问题... / Ask me anything..." onkeypress="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()">发送 · Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'wardrobe') loadWardrobe();
+}
+
+// ── 今日穿搭 ──────────────────────────────────
+async function loadToday() {
+  try {
+    const r = await fetch(API + '/status');
+    const d = await r.json();
+    document.getElementById('temp').textContent = d.weather.temp + '°C';
+    document.getElementById('weather-desc').textContent = d.weather.description || '--';
+    document.getElementById('weather-city').textContent = '📍 ' + (d.weather.city || 'Bournemouth');
+
+    const r2 = await fetch(API + '/wardrobe/recommend');
+    const d2 = await r2.json();
+    const grid = document.getElementById('outfit-suggestion');
+    const allItems = [...(d2.tops || []), ...(d2.bottoms || [])];
+    if (allItems.length > 0) {
+      grid.innerHTML = '<div class="outfit-grid">' +
+        allItems.map(item => `
+          <div class="outfit-item">
+            ${item.image_path
+              ? `<img src="${API}/${item.image_path}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">`
+              : `<div class="emoji">${getCategoryEmoji(item.category)}</div>`}
+            <p><strong>${item.name}</strong></p>
+            <p style="color:#888;font-size:0.8em;">${item.category} · ${item.color || ''}</p>
+            ${item.style ? `<p style="color:#aaa;font-size:0.75em;">🎨 ${item.style}</p>` : ''}
+          </div>`).join('') +
+        '</div>';
+    } else {
+      grid.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">暂无匹配衣物，请先添加衣物 · No matching items found<br><small>No matching items. Please add clothing first.</small></p>';
+    }
+  } catch(e) {
+    document.getElementById('temp').textContent = '--°C';
+    document.getElementById('weather-desc').textContent = '天气获取失败 · Weather unavailable';
+  }
+}
+
+function getCategoryEmoji(cat) {
+  const map = {
+    '背心':'🎽','短袖T恤':'👕','T恤':'👕','长袖衬衫':'👔',
+    '卫衣':'🧥','薄外套':'🧥','厚外套':'🧥','羽绒服':'🧥','上衣':'👕',
+    '短裤':'🩳','牛仔裤':'👖','厚裤子':'👖','裤子':'👖'
+  };
+  return map[cat] || '👗';
+}
+
+// ── 我的衣橱 ──────────────────────────────────
+async function loadWardrobe() {
+  const cat = document.getElementById('filter-category').value;
+  const url = API + '/wardrobe/list' + (cat ? '?category=' + encodeURIComponent(cat) : '');
+  try {
+    const r = await fetch(url);
+    const data = await r.json();
+    const items = data.items || [];
+    const grid = document.getElementById('wardrobe-grid');
+    if (items.length === 0) {
+      grid.innerHTML = '<p style="color:#888;grid-column:1/-1;text-align:center;padding:20px;">衣橱是空的，快去添加吧！<br><small>Your wardrobe is empty. Start adding items!</small></p>';
+      return;
+    }
+    window._wardrobeMap = {};
+    items.forEach(i => window._wardrobeMap[i.id] = i);
+    grid.innerHTML = items.map(item => `
+      <div class="wardrobe-item" onclick="openEditModal(${item.id})" style="cursor:pointer;">
+        <button class="delete-btn" onclick="event.stopPropagation();deleteItem(${item.id})" title="删除 Delete">✕</button>
+        <div class="item-emoji">
+          ${item.image_path
+            ? `<img src="${API}/${item.image_path}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">`
+            : getCategoryEmoji(item.category)}
+        </div>
+        <p><strong>${item.name}</strong></p>
+        <p>${item.category} · ${item.color || '--'}</p>
+        ${item.style    ? `<p style="font-size:0.75em;color:#888;">🎨 ${item.style}</p>` : ''}
+        ${item.material ? `<p style="font-size:0.75em;color:#888;">🧵 ${item.material}</p>` : ''}
+        ${item.layerable ? `<p style="font-size:0.75em;color:#888;">叠穿 Layerable：${item.layerable}</p>` : ''}
+        <p class="temp-range">🌡️ ${item.temp_min}°C ~ ${item.temp_max}°C</p>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('wardrobe-grid').innerHTML = '<p style="color:red;">加载失败 · Failed to load wardrobe</p>';
+  }
+}
+
+async function deleteItem(id) {
+  if (!confirm('确认删除这件衣物？\nAre you sure you want to delete this item?')) return;
+  await fetch(API + '/wardrobe/' + id, { method: 'DELETE' });
+  loadWardrobe();
+}
+
+// ── 添加衣物（AI识别） ────────────────────────
+let uploadedImageFile = null;
+
+async function handleImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  uploadedImageFile = file;
+
+  // 显示预览图
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('preview-area').innerHTML = `
+      <img src="${e.target.result}"
+           style="max-height:180px;border-radius:10px;object-fit:contain;">
+      <p style="color:#667eea;margin-top:8px;font-size:0.85em;">点击更换图片 · Click to change image</p>`;
+  };
+  reader.readAsDataURL(file);
+
+  // 显示识别中
+  document.getElementById('ai-analyzing').style.display = 'block';
+  document.getElementById('add-form').style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+    const r = await fetch(API + '/wardrobe/analyze-image', { method: 'POST', body: formData });
+    const d = await r.json();
+
+    // 重置提示样式
+    const tip = document.getElementById('form-tip');
+    if (d.error) {
+      tip.style.background = '#fff3e0';
+      tip.style.color = '#e65100';
+      tip.innerHTML = '⚠️ ' + d.error + ' · Please edit the fields below manually';
+    } else {
+      tip.style.background = '#e8f5e9';
+      tip.style.color = '#2e7d32';
+      tip.innerHTML = '✅ AI 识别完成！以下信息均可手动修改 · All fields are editable';
+    }
+
+    // 填充表单
+    document.getElementById('add-name').value     = d.name     || '';
+    document.getElementById('add-color').value    = d.color    || '';
+    document.getElementById('add-style').value    = d.style    || '';
+    document.getElementById('add-material').value = d.material || '';
+    document.getElementById('add-warmth').value   = d.warmth   ?? '';
+    document.getElementById('add-temp-min').value = d.temp_min ?? 0;
+    document.getElementById('add-temp-max').value = d.temp_max ?? 35;
+
+    // 设置 category 下拉
+    const catSel = document.getElementById('add-category');
+    for (let opt of catSel.options) {
+      if (opt.value === d.category) { opt.selected = true; break; }
+    }
+    // 设置 layerable 下拉
+    const laySel = document.getElementById('add-layerable');
+    for (let opt of laySel.options) {
+      if (opt.value === d.layerable) { opt.selected = true; break; }
+    }
+
+    document.getElementById('ai-analyzing').style.display = 'none';
+    document.getElementById('add-form').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('ai-analyzing').style.display = 'none';
+    document.getElementById('add-form').style.display = 'block';
+    const tip = document.getElementById('form-tip');
+    tip.style.background = '#fff3e0';
+    tip.style.color = '#e65100';
+    tip.innerHTML = '⚠️ AI识别失败，请手动填写 · AI analysis failed, please fill in manually';
+  }
+}
+
+function showManualForm() {
+  document.getElementById('add-form').style.display = 'block';
+  document.getElementById('ai-analyzing').style.display = 'none';
+  const tip = document.getElementById('form-tip');
+  tip.style.background = '#e3f2fd';
+  tip.style.color = '#1565c0';
+  tip.innerHTML = '✏️ 手动填写模式 · Manual Entry Mode';
+}
+
+async function addClothing() {
+  const name = document.getElementById('add-name').value.trim();
+  if (!name) { alert('请输入衣物名称 · Please enter the item name'); return; }
+
+  const formData = new FormData();
+  formData.append('name',      name);
+  formData.append('category',  document.getElementById('add-category').value);
+  formData.append('color',     document.getElementById('add-color').value);
+  formData.append('temp_min',  document.getElementById('add-temp-min').value);
+  formData.append('temp_max',  document.getElementById('add-temp-max').value);
+  formData.append('style',     document.getElementById('add-style').value);
+  formData.append('material',  document.getElementById('add-material').value);
+  formData.append('layerable', document.getElementById('add-layerable').value);
+  formData.append('warmth',    document.getElementById('add-warmth').value || 0);
+  if (uploadedImageFile) formData.append('image', uploadedImageFile);
+
+  try {
+    const r = await fetch(API + '/wardrobe/add', { method: 'POST', body: formData });
+    if (r.ok) {
+      alert('✅ 添加成功！· Item added successfully!');
+      // 重置页面
+      uploadedImageFile = null;
+      document.getElementById('add-image').value = '';
+      document.getElementById('add-form').style.display = 'none';
+      document.getElementById('ai-analyzing').style.display = 'none';
+      document.getElementById('preview-area').innerHTML = `
+        <div style="font-size:3em;">📷</div>
+        <p style="color:#667eea;font-weight:600;margin-top:8px;">点击拍照或上传图片 · Tap to take photo or upload</p>
+        <p style="color:#999;font-size:0.85em;">AI 自动识别衣物信息 · Auto-analyze with AI</p>`;
+    }
+  } catch(e) {
+    alert('添加失败 · Failed to add item. Please try again.');
+  }
+}
+
+// ── 运动提醒 ──────────────────────────────────
+async function getReminder() {
+  const sitting = document.getElementById('sitting-hours').value || 0;
+  const box = document.getElementById('reminder-box');
+  box.innerHTML = '<p style="color:#888;">AI 生成中 · Generating...</p>';
+  try {
+    const r = await fetch(`${API}/remind?sitting_hours=${sitting}`);
+    const d = await r.json();
+    box.innerHTML = `<div class="reminder-box">💪 ${d.reminder}</div>`;
+  } catch(e) {
+    box.innerHTML = '<p style="color:red;">获取失败 · Failed to load reminder</p>';
+  }
+}
+
+// ── AI 顾问聊天 ───────────────────────────────
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const box = document.getElementById('chat-box');
+  box.innerHTML += `<div class="msg user"><span>${msg}</span></div>`;
+  box.innerHTML += `<div class="msg ai" id="typing"><span>思考中 · Thinking...</span></div>`;
+  box.scrollTop = box.scrollHeight;
+  try {
+    const r = await fetch(API + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    const d = await r.json();
+    document.getElementById('typing').outerHTML =
+      `<div class="msg ai"><span>${d.reply}</span></div>`;
+  } catch(e) {
+    document.getElementById('typing').outerHTML =
+      `<div class="msg ai"><span>连接失败，请检查后端服务 · Connection failed, please check the backend service</span></div>`;
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+loadToday();
+</script>
+
+<!-- 编辑衣物弹窗 -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:28px;width:90%;max-width:420px;max-height:90vh;overflow-y:auto;position:relative;">
+    <button onclick="closeEditModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.4em;cursor:pointer;color:#888;">✕</button>
+    <h3 style="color:#667eea;margin-bottom:18px;">✏️ 编辑衣物 · Edit Item</h3>
+    <input type="hidden" id="edit-id">
+
+    <label style="font-size:0.85em;color:#555;">名称 · Name</label>
+    <input id="edit-name" type="text" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+
+    <label style="font-size:0.85em;color:#555;">类别 · Category</label>
+    <select id="edit-category" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+      <option>背心 · Tank Top</option><option>短袖T恤 · Short Sleeve T-Shirt</option><option>T恤 · T-Shirt</option>
+      <option>长袖衬衫 · Long Sleeve Shirt</option><option>卫衣 · Sweatshirt</option><option>薄外套 · Light Jacket</option>
+      <option>厚外套 · Heavy Jacket</option><option>羽绒服 · Down Coat</option><option>上衣 · Top</option>
+      <option>短裤 · Shorts</option><option>牛仔裤 · Jeans</option><option>厚裤子 · Thick Trousers</option><option>裤子 · Trousers</option>
+    </select>
+
+    <label style="font-size:0.85em;color:#555;">颜色 · Color</label>
+    <input id="edit-color" type="text" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+
+    <label style="font-size:0.85em;color:#555;">风格 · Style</label>
+    <input id="edit-style" type="text" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+
+    <label style="font-size:0.85em;color:#555;">材质 · Material</label>
+    <input id="edit-material" type="text" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+
+    <label style="font-size:0.85em;color:#555;">叠穿 · Layerable</label>
+    <select id="edit-layerable" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+      <option value="是">是 · Yes</option><option value="否">否 · No</option>
+    </select>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:0.85em;color:#555;">最低温度 · Min Temp (°C)</label>
+        <input id="edit-temp-min" type="number" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:0.85em;color:#555;">最高温度 · Max Temp (°C)</label>
+        <input id="edit-temp-max" type="number" style="width:100%;padding:8px;border:2px solid #e8ecf0;border-radius:8px;box-sizing:border-box;">
+      </div>
+    </div>
+
+    <label style="font-size:0.85em;color:#555;">更换图片（可选）· Replace Image (optional)</label>
+    <input id="edit-image" type="file" accept="image/*" style="width:100%;margin-bottom:16px;box-sizing:border-box;">
+
+    <button onclick="submitEdit()" style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-size:1em;cursor:pointer;">
+      💾 保存修改 · Save Changes
+    </button>
+  </div>
+</div>
+
+<script>
+function openEditModal(id) {
+  const item = window._wardrobeMap[id];
+  if (!item) return;
+  document.getElementById('edit-id').value        = item.id;
+  document.getElementById('edit-name').value      = item.name || '';
+  document.getElementById('edit-category').value  = item.category || '';
+  document.getElementById('edit-color').value     = item.color || '';
+  document.getElementById('edit-style').value     = item.style || '';
+  document.getElementById('edit-material').value  = item.material || '';
+  document.getElementById('edit-layerable').value = item.layerable || '是';
+  document.getElementById('edit-temp-min').value  = item.temp_min ?? '';
+  document.getElementById('edit-temp-max').value  = item.temp_max ?? '';
+  document.getElementById('edit-image').value     = '';
+  const modal = document.getElementById('edit-modal');
+  modal.style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+}
+
+// 点击遮罩关闭
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+async function submitEdit() {
+  const id = document.getElementById('edit-id').value;
+  const fd = new FormData();
+  fd.append('name',      document.getElementById('edit-name').value);
+  fd.append('category',  document.getElementById('edit-category').value);
+  fd.append('color',     document.getElementById('edit-color').value);
+  fd.append('style',     document.getElementById('edit-style').value);
+  fd.append('material',  document.getElementById('edit-material').value);
+  fd.append('layerable', document.getElementById('edit-layerable').value);
+  fd.append('temp_min',  document.getElementById('edit-temp-min').value);
+  fd.append('temp_max',  document.getElementById('edit-temp-max').value);
+  const img = document.getElementById('edit-image').files[0];
+  if (img) fd.append('image', img);
+
+  const btn = event.target;
+  btn.textContent = '保存中... Saving...';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(API + '/wardrobe/' + id, { method: 'PUT', body: fd });
+    const data = await r.json();
+    if (data.message) {
+      closeEditModal();
+      loadWardrobe();
+    } else {
+      alert('保存失败 · Save failed: ' + (data.error || '未知错误 Unknown error'));
+    }
+  } catch(e) {
+    alert('网络错误 · Network error: ' + e.message);
+  } finally {
+    btn.textContent = '💾 保存修改 · Save Changes';
+    btn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
